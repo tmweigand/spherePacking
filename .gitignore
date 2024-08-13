@@ -1,0 +1,4 @@
+spherepacking/.DS_Store
+spherepacking/__pycache__/
+spherepacking.egg-info/*
+*.pyc
