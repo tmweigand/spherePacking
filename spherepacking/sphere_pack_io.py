@@ -168,7 +168,7 @@ class SpherePackIO:
 
         if self.media_type == "Spheres":
             with pygmsh.geo.Geometry() as geom:
-                for n in range(sp.n_spheres + sp.n_b_spheres):
+                for n in range(sp.n_spheres + sp.n_b_p_spheres):
                     geom.add_ball(
                         [sp.media.x[n, 0], sp.media.x[n, 1], sp.media.x[n, 2]],
                         sp.media.radii[n],
@@ -200,7 +200,7 @@ class SpherePackIO:
 
         out_file = open(self.out_folder + "/" + file_name + ".csv", "w", encoding="utf-8")
 
-        for n in range(sp.n_spheres + sp.n_b_spheres):
+        for n in range(sp.n_spheres + sp.n_b_p_spheres):
             x = sp.media.x[n]
             r = sp.media.radii[n]
             out_file.write(f"{x[0]},{x[1]},{x[2]},{r}\n")
