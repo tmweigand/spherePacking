@@ -26,6 +26,6 @@ domain.gen_min_cube()
 packIO = spherepacking.SpherePackIO(domain,media_type = 'Spheres',run_folder = run_folder, out_folder="data_out")
 
 sp = packIO.generate_sphere_pack(seed = 6, periodic=True)
-# packIO.save_pack_txt(sp,"uniform")
+packIO.save_pack_txt(sp,"uniform")
 # packIO.save_pack_stl(sp,"uniform")
-packIO.save_openfoam(sp,'uniform_openfoam')
+# packIO.save_openfoam(sp,'uniform_openfoam')

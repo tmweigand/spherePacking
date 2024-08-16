@@ -14,7 +14,7 @@ def remove_dir(folder):
     Ensure run folder is empty
     """
     cwd = os.getcwd()
-    pathway = cwd + "/" +  folder
+    pathway = cwd + "/" + folder
     if os.path.isdir(pathway):
         clean_directory(pathway)
     check_folder_path(folder)

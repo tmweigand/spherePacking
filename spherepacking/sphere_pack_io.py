@@ -48,9 +48,9 @@ class SpherePackIO:
         out_file.write(
             f"Packing size: {self.domain.length[0]} {self.domain.length[1]} {self.domain.length[2]}\n"
         )
-        out_file.write("Generation start: 1\n")
+        out_file.write("Generation start:1\n")
         out_file.write(f"Seed: {seed}\n")
-        out_file.write("Steps to write: 0\n")
+        out_file.write("Steps to write: 1000\n")
         out_file.write("Boundaries mode: 1\n")
         out_file.write(f"Contraction rate: {contraction_rate} \n")
         out_file.write("Generation mode: 1\n")
@@ -65,7 +65,6 @@ class SpherePackIO:
             subprocess.run(
                 args=["./PackingGeneration.exe", "-fba"],
                 check=False,
-                cwd = wd,
             )
         else:
             subprocess.run(
@@ -73,7 +72,6 @@ class SpherePackIO:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 check=False,
-                cwd = wd,
             )
 
     def read_pack(self):
