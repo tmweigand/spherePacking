@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import subprocess
-import pygmsh
+# import pygmsh
 
 from .sphere_pack import SpherePack
 from .spheres import Spheres
@@ -60,10 +60,12 @@ class SpherePackIO:
         """
         Run the sphere pack code
         """
+        wd = os.getcwd() + "/" + self.run_folder
         if not output:
             subprocess.run(
                 args=["./PackingGeneration.exe", "-fba"],
                 check=False,
+                cwd = wd,
             )
         else:
             subprocess.run(
@@ -71,6 +73,7 @@ class SpherePackIO:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 check=False,
+                cwd = wd,
             )
 
     def read_pack(self):
@@ -143,23 +146,23 @@ class SpherePackIO:
         out_file.write(f"Point in Pore Space: {sp.pore_point}\n")
         out_file.close()
 
-    def save_domain_stl(self, sp, file_name):
-        """
-        Save the domain as vtk for viz
-        """
-        min_length = np.min(sp.length)
-        with pygmsh.geo.Geometry() as geom:
-            geom.add_box(
-                0.0,
-                sp.length[0],
-                0.0,
-                sp.length[1],
-                0.0,
-                sp.length[2],
-                mesh_size=0.5 * min_length,
-            )
-            mesh = geom.generate_mesh()
-            mesh.write(self.out_folder + '/' + file_name + "_domain.stl")
+    # def save_domain_stl(self, sp, file_name):
+    #     """
+    #     Save the domain as vtk for viz
+    #     """
+    #     min_length = np.min(sp.length)
+    #     with pygmsh.geo.Geometry() as geom:
+    #         geom.add_box(
+    #             0.0,
+    #             sp.length[0],
+    #             0.0,
+    #             sp.length[1],
+    #             0.0,
+    #             sp.length[2],
+    #             mesh_size=0.5 * min_length,
+    #         )
+    #         mesh = geom.generate_mesh()
+    #         mesh.write(self.out_folder + '/' + file_name + "_domain.stl")
 
     def save_pack_stl(self, sp, file_name):
         """
