@@ -57,8 +57,6 @@ class SpherePack:
         self.n_b_spheres = len(boundary_spheres)
         self.boundary_spheres = boundary_spheres
 
-        print("TIMMMMMM",self.n_b_spheres)
-
     def add_periodic_objects(self):
         """
         Sphere packing code does not explicitly include periodic spheres that
@@ -97,10 +95,8 @@ class SpherePack:
         while in_pore and n < (self.n_spheres +  self.n_b_p_spheres):
             distance = 0
             for dim in [0,1,2]:
-                print(dim,self.media.x[n][dim] , x[dim],self.media.radii[n])
                 distance += (self.media.x[n][dim] - x[dim])*(self.media.x[n][dim] - x[dim])
 
-            # print(distance,self.media.radii[n])
             if distance < self.media.radii[n]*self.media.radii[n]:
                 in_pore = False
             
@@ -114,7 +110,6 @@ class SpherePack:
         eps = 1.e-3
         x = np.linspace(0,self.length[0],N)
         for _x in x:
-            print(_x)
             if self.point_in_pore([_x,eps,eps]):
                 break
 

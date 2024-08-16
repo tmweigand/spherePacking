@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import subprocess
 import pygmsh
@@ -76,8 +77,8 @@ class SpherePackIO:
         """
         Read the results of the sphere pack
         """
-
-        with open(self.run_folder + "/" + "packing.nfo") as nfo_file:
+        wd = os.getcwd() + "/"
+        with open(wd + self.run_folder + "/" + "packing.nfo") as nfo_file:
             head = [next(nfo_file) for x in range(5)]
 
         n_spheres = int(head[0].split(":")[1])
