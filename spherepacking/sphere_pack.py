@@ -97,7 +97,7 @@ class SpherePack:
             for dim in [0,1,2]:
                 distance += (self.media.x[n][dim] - x[dim])*(self.media.x[n][dim] - x[dim])
 
-            if distance < self.media.radii[n]*self.media.radii[n]:
+            if distance < self.media.radii[n,0]*self.media.radii[n,0]:
                 in_pore = False
             
             n += 1

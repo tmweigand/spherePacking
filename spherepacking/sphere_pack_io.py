@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import subprocess
-# import pygmsh
+import pygmsh
 
 from .sphere_pack import SpherePack
 from .spheres import Spheres
@@ -25,7 +25,6 @@ class SpherePackIO:
         self.out_folder = out_folder
         utils.check_folder_path(self.run_folder)
         utils.check_folder_path(self.out_folder)
-        
 
     def generate_sphere_pack(self, seed, periodic=False):
         """
@@ -36,6 +35,10 @@ class SpherePackIO:
         sp = self.read_pack()
         if periodic:
             sp.gen_periodic_objects()
+
+        if self.media_type == "Ellipsoids":
+            sp = self.convert_to_ellipsoids(sp)
+
         return sp
 
     def gen_input(self, seed, contraction_rate=1.328910e-3):
@@ -43,7 +46,9 @@ class SpherePackIO:
         Generate 'generation.conf' for the sphere packing code
         """
 
-        out_file = open(self.run_folder + '/' + "generation.conf", "w", encoding="utf-8")
+        out_file = open(
+            self.run_folder + "/" + "generation.conf", "w", encoding="utf-8"
+        )
         out_file.write(f"Particles count: {self.domain.spheres.n}\n")
         out_file.write(
             f"Packing size: {self.domain.length[0]} {self.domain.length[1]} {self.domain.length[2]}\n"
@@ -102,23 +107,7 @@ class SpherePackIO:
             x[n, 1] = sphere_data[i + 1]
             x[n, 2] = sphere_data[i + 2]
             r[n] = sphere_data[i + 3] * scale_fac / 2
-
-        if self.media_type == "Spheres":
-            media = Spheres(r, x)
-
-        if self.media_type == "Ellipsoids":
-
-            radii = np.zeros([n_spheres, 3])
-            for n in range(n_spheres):
-                for d in [0, 1, 2]:
-                    if d == self.dim:
-                        radii[n, d] = r[n] / self.factor
-                        x[n, d] = x[n, d] / self.factor
-                    else:
-                        radii[n, d] = r[n]
-
-            media = Ellipsoids(radii, x)
-
+        media = Spheres(r, x)
         return SpherePack(self.domain, media, length, n_spheres)
 
     def print_stats(self, sp):
@@ -134,7 +123,11 @@ class SpherePackIO:
         """
         Save the domain info as a txt file
         """
-        out_file = open(self.out_folder + '/' + file_name + "_domain.txt", "w", encoding="utf-8")
+        out_file = open(
+            self.out_folder + "/" + file_name + "_domain.txt", "w", encoding="utf-8"
+        )
+
+        print(sp.length)
 
         out_file.write(f"Length {sp.length[0]} {sp.length[1]} {sp.length[2]}\n")
         out_file.write(f"Domain Volume: {np.prod(sp.length)}\n")
@@ -144,23 +137,23 @@ class SpherePackIO:
         out_file.write(f"Point in Pore Space: {sp.pore_point}\n")
         out_file.close()
 
-    # def save_domain_stl(self, sp, file_name):
-    #     """
-    #     Save the domain as vtk for viz
-    #     """
-    #     min_length = np.min(sp.length)
-    #     with pygmsh.geo.Geometry() as geom:
-    #         geom.add_box(
-    #             0.0,
-    #             sp.length[0],
-    #             0.0,
-    #             sp.length[1],
-    #             0.0,
-    #             sp.length[2],
-    #             mesh_size=0.5 * min_length,
-    #         )
-    #         mesh = geom.generate_mesh()
-    #         mesh.write(self.out_folder + '/' + file_name + "_domain.stl")
+    def save_domain_stl(self, sp, file_name):
+        """
+        Save the domain as vtk for viz
+        """
+        min_length = np.min(sp.length)
+        with pygmsh.geo.Geometry() as geom:
+            geom.add_box(
+                0.0,
+                sp.length[0],
+                0.0,
+                sp.length[1],
+                0.0,
+                sp.length[2],
+                mesh_size=0.5 * min_length,
+            )
+            mesh = geom.generate_mesh()
+            mesh.write(self.out_folder + "/" + file_name + "_domain.stl")
 
     def save_pack_stl(self, sp, file_name):
         """
@@ -177,7 +170,7 @@ class SpherePackIO:
                         mesh_size=sp.media.radii[n] * 0.1,
                     )
                 mesh = geom.generate_mesh()
-                mesh.write(self.out_folder + '/' + file_name + ".stl")
+                mesh.write(self.out_folder + "/" + file_name + ".stl")
 
         elif self.media_type == "Ellipsoids":
             with pygmsh.geo.Geometry() as geom:
@@ -189,10 +182,10 @@ class SpherePackIO:
                             sp.media.radii[n, 1],
                             sp.media.radii[n, 2],
                         ],
-                        mesh_size=0.5,
+                        mesh_size=np.min(sp.media.radii[n, :]) * 0.1,
                     )
                 mesh = geom.generate_mesh()
-                mesh.write(self.out_folder + '/' + file_name + ".stl")
+                mesh.write(self.out_folder + "/" + file_name + ".stl")
 
     def save_pack_txt(self, sp, file_name):
         """
@@ -200,7 +193,9 @@ class SpherePackIO:
         """
         self.save_domain_txt(sp, file_name)
 
-        out_file = open(self.out_folder + "/" + file_name + ".csv", "w", encoding="utf-8")
+        out_file = open(
+            self.out_folder + "/" + file_name + ".csv", "w", encoding="utf-8"
+        )
 
         for n in range(sp.n_spheres + sp.n_b_p_spheres):
             x = sp.media.x[n]
@@ -216,3 +211,24 @@ class SpherePackIO:
         self.save_pack_stl(sp, file_name)
         sp.find_point_in_pore()
         self.save_domain_txt(sp, file_name)
+
+    def convert_to_ellipsoids(self, sphere_pack):
+        """
+        Convert sphere pack into ellipsoids.
+        """
+        n_spheres = sphere_pack.n_spheres + sphere_pack.n_b_p_spheres
+        radii = np.zeros([n_spheres, 3])
+        x = np.zeros([n_spheres, 3])
+        for n in range(n_spheres):
+            for d in [0, 1, 2]:
+                if d == self.dim:
+                    radii[n, d] = sphere_pack.media.radii[n] / self.factor
+                    x[n, d] = sphere_pack.media.x[n, d] / self.factor
+                else:
+                    radii[n, d] = sphere_pack.media.radii[n]
+                    x[n, d] = sphere_pack.media.x[n, d]
+
+        media = Ellipsoids(radii, x)
+        self.domain.length[self.dim] /= self.factor
+        sphere_pack.length[self.dim] /= self.factor
+        return SpherePack(self.domain, media, sphere_pack.length, n_spheres)

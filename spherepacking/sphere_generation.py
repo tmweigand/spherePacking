@@ -5,16 +5,19 @@ class SphereRadii:
     Specifications for spheres to be generated 
     """
 
-    def __init__(self, n, distribution, mean, stdev, run_folder) -> None:
+    def __init__(self, n, distribution, mean, stdev, run_folder, media_type) -> None:
         self.n = n
         self.distribution = distribution
         self.mean = mean
         self.stdev = stdev
         self.radii = None
         self.run_folder = run_folder
+        self.media_type = media_type
 
         self.gen_radii()
         self.print_diameters()
+        if media_type == 'ellipsoids':
+            self.set_ellipsoids()
 
 
     def gen_radii(self):
@@ -52,3 +55,14 @@ class SphereRadii:
             d = r * 2.0
             out_file.write("%lf \n" % d)
         out_file.close()
+
+    def set_ellipsoids(self):
+        """
+        Convert sphere radii to ellipsoids
+        """
+        if self.media_type == "ellipsoids":
+            _radii = np.zeros([self.radii.shape[0],3])
+            _radii[:,0] = self.radii
+            _radii[:,1] = self.radii
+            _radii[:,2] = self.radii
+            self.radii = _radii
