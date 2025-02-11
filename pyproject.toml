@@ -1,7 +1,36 @@
 [project]
 name = "spherepacking"
 version = "0.0.1"
+description = "A project for sphere packing simulations"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+
 dependencies = [
     "requests",
+    "numpy",
+    "scipy",
+    "pygmsh",
+    "gmsh",  # Ensure gmsh is installed if using pygmsh
     'importlib-metadata; python_version<"3.10"',
 ]
+
+[project.optional-dependencies]
+dev = [
+    "black",      # Code formatting
+    "flake8",     # Linting
+    "pytest",     # Testing
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["spherepacking"]  # Ensure your package is discoverable
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310']
