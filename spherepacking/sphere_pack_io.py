@@ -108,6 +108,7 @@ class SpherePackIO:
             x[n, 2] = sphere_data[i + 2]
             r[n] = sphere_data[i + 3] * scale_fac / 2
         media = Spheres(r, x)
+        print("Tim", self.domain.length, length)
         return SpherePack(self.domain, media, length, n_spheres)
 
     def print_stats(self, sp):
@@ -174,7 +175,7 @@ class SpherePackIO:
 
         elif self.media_type == "Ellipsoids":
             with pygmsh.geo.Geometry() as geom:
-                for n in range(sp.n_spheres):
+                for n in range(sp.n_spheres + sp.n_b_p_spheres):
                     geom.add_ellipsoid(
                         [sp.media.x[n, 0], sp.media.x[n, 1], sp.media.x[n, 2]],
                         [
@@ -188,6 +189,26 @@ class SpherePackIO:
                 mesh.write(self.out_folder + "/" + file_name + ".stl")
 
     def save_pack_txt(self, sp, file_name):
+        """
+        Save the pack as a txt
+        """
+        self.save_domain_txt(sp, file_name)
+
+        out_file = open(
+            self.out_folder + "/" + file_name + ".txt", "w", encoding="utf-8"
+        )
+
+        for n in range(sp.n_spheres + sp.n_b_p_spheres):
+            x = sp.media.x[n]
+            r = sp.media.radii[n]
+            if np.isscalar(r) or np.asarray(r).size == 1:
+                out_file.write(f"{x[0]}\t{x[1]}\t{x[2]}\t{r}\n")
+            else:
+                out_file.write(f"{x[0]}\t{x[1]}\t{x[2]}\t{r[0]}\t{r[1]}\t{r[2]}\n")
+
+        out_file.close()
+
+    def save_pack_csv(self, sp, file_name):
         """
         Save the pack as a csv
         """
@@ -213,13 +234,10 @@ class SpherePackIO:
         self.save_domain_txt(sp, file_name)
 
     def convert_to_ellipsoids(self, sphere_pack):
-        """
-        Convert sphere pack into ellipsoids.
-        """
-        n_spheres = sphere_pack.n_spheres + sphere_pack.n_b_p_spheres
-        radii = np.zeros([n_spheres, 3])
-        x = np.zeros([n_spheres, 3])
-        for n in range(n_spheres):
+        n_total = sphere_pack.n_spheres + sphere_pack.n_b_p_spheres
+        radii = np.zeros([n_total, 3])
+        x = np.zeros([n_total, 3])
+        for n in range(n_total):
             for d in [0, 1, 2]:
                 if d == self.dim:
                     radii[n, d] = sphere_pack.media.radii[n] / self.factor
@@ -228,7 +246,20 @@ class SpherePackIO:
                     radii[n, d] = sphere_pack.media.radii[n]
                     x[n, d] = sphere_pack.media.x[n, d]
 
-        media = Ellipsoids(radii, x)
+        n_spheres = sphere_pack.n_spheres
+        media = Ellipsoids(
+            radii[:n_spheres], x[:n_spheres]
+        )  # volume from unique spheres only
         self.domain.length[self.dim] /= self.factor
         sphere_pack.length[self.dim] /= self.factor
-        return SpherePack(self.domain, media, sphere_pack.length, n_spheres)
+        new_sp = SpherePack(self.domain, media, sphere_pack.length, n_spheres)
+
+        if sphere_pack.n_b_p_spheres > 0:
+            new_sp.media.add_spheres(
+                x[n_spheres:], radii[n_spheres:]
+            )  # doesn't affect .volume
+            new_sp.n_b_p_spheres = sphere_pack.n_b_p_spheres
+            new_sp.boundary_spheres = sphere_pack.boundary_spheres
+            new_sp.n_b_spheres = sphere_pack.n_b_spheres
+
+        return new_sp

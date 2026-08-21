@@ -2,6 +2,8 @@ import numpy as np
 import itertools
 
 from .spheres import Spheres
+
+
 class SpherePack:
     """
     Class for running the sphere pack code
@@ -18,7 +20,6 @@ class SpherePack:
         self.pore_point = None
         self.porosity = self.get_porosity()
 
-
     def get_porosity(self):
         """
         Generate the porosity before adding boundary spheres - bad code
@@ -30,8 +31,8 @@ class SpherePack:
         Add periodic boundary spheres
         """
         self.get_boundary_spheres()
-        x,r = self.add_periodic_objects()
-        self.media.add_spheres(x,r)
+        x, r = self.add_periodic_objects()
+        self.media.add_spheres(x, r)
 
     def get_boundary_spheres(self):
         """
@@ -67,62 +68,68 @@ class SpherePack:
             x = self.media.x[sphere]
             r = self.media.radii[sphere]
             perms = self.get_boundary_permutations(sphere)
-            x_new = add_boundary_location(x, perms, self.domain,r)
+            x_new = add_boundary_location(x, perms, self.domain, r)
             add_spheres.extend(x_new)
 
         self.n_b_p_spheres = len(add_spheres)
         add_spheres = np.array(add_spheres)
-        return add_spheres[:,0:3],add_spheres[:,3]
+        return add_spheres[:, 0:3], add_spheres[:, 3]
 
-    def get_boundary_permutations(self,ID):
+    def get_boundary_permutations(self, ID):
         """
         Generate a list of all boundary faces for a boundary sphere
         """
         perms = {}
         for n in [1, 2, 3]:
-            perms[n] = list(
-                itertools.combinations(self.boundary_spheres[ID], n)
-                )
+            perms[n] = list(itertools.combinations(self.boundary_spheres[ID], n))
 
         return perms
 
-    def point_in_pore(self,x):
+    def point_in_pore(self, x):
         """
         Determine if point is in solid or pore space
         """
         in_pore = True
         n = 0
-        while in_pore and n < (self.n_spheres +  self.n_b_p_spheres):
-            distance = 0
-            for dim in [0,1,2]:
-                distance += (self.media.x[n][dim] - x[dim])*(self.media.x[n][dim] - x[dim])
+        while in_pore and n < (self.n_spheres + self.n_b_p_spheres):
+            r = self.media.radii[n]
+            c = self.media.x[n]
 
-            if distance < self.media.radii[n]*self.media.radii[n]:
-                in_pore = False
-            
+            if np.isscalar(r) or np.asarray(r).size == 1:
+                # sphere: simple distance-squared test
+                distance = sum((c[dim] - x[dim]) ** 2 for dim in [0, 1, 2])
+                if distance < float(r) ** 2:
+                    in_pore = False
+            else:
+                # ellipsoid: normalized (semi-axis) distance test
+                s = sum(((c[dim] - x[dim]) / r[dim]) ** 2 for dim in [0, 1, 2])
+                if s < 1.0:
+                    in_pore = False
+
             n += 1
         return in_pore
 
-    def find_point_in_pore(self,N=1000):
+    def find_point_in_pore(self, N=1000):
         """
         For some software, a point within the pore space is needed.
         """
-        eps = 1.e-3
-        x = np.linspace(0,self.length[0],N)
+        eps = 1.0e-3
+        x = np.linspace(0, self.length[0], N)
         for _x in x:
-            if self.point_in_pore([_x,eps,eps]):
+            if self.point_in_pore([_x, eps, eps]):
                 break
 
-        self.pore_point = (_x,eps,eps)
+        self.pore_point = (_x, eps, eps)
 
 
-def add_boundary_location(x, perms, domain,r):
+def add_boundary_location(x, perms, domain, r):
     """
     From indices determine where to add boundary spheres
     """
-    x = np.append(x,r)
+    x = np.append(x, r)
     boundary_spheres = []
-    for (_,faces) in perms.items():
+    length = np.asarray(domain.length)
+    for _, faces in perms.items():
         for face_list in faces:
             x_new = x.tolist()
             for bound in face_list:
@@ -132,6 +139,10 @@ def add_boundary_location(x, perms, domain,r):
                 else:
                     dim = int((bound - 1) / 2)
                     x_new[dim] = x[dim] - domain.length[dim]
-            boundary_spheres.append(x_new)
-                
+
+            center = np.array(x_new[:3])
+            closest = np.clip(center, 0, length)
+            if np.linalg.norm(center - closest) <= r:
+                boundary_spheres.append(x_new)
+
     return boundary_spheres

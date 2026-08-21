@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Domain:
     """
     Specifications for the Domain
@@ -17,13 +18,25 @@ class Domain:
         vol_domain = -self.spheres.volume / (self.porosity - 1.0)
         self.length[:] = np.cbrt(vol_domain) + eps
 
-    def gen_non_cube(self,dim,factor):
+    def gen_non_cube(self, dim, factor):
         """
-        Generate a cube that is longer in a single dimensions
-        """
-        self.gen_min_cube()
-        self.length[dim] = self.length[dim]*factor
+        Generate a box that is longer in `dim` by `factor`, sized so that
+        after `convert_to_ellipsoids` compresses `dim` by `1/factor` (for
+        both the sphere radii/positions and the domain length), the
+        resulting domain is a cube with the target porosity.
 
+        Compressing one axis by the same factor in both the solid volume
+        and the domain volume preserves whatever porosity existed
+        beforehand. So instead of stretching a target-porosity cube (which
+        would inflate the pre-generation domain volume and understate the
+        final porosity), the cube side length is computed here for the
+        eventual (post-compression) cube volume, then `dim` is stretched by
+        `factor` to build the pre-generation packing box.
+        """
+        vol_domain = -self.spheres.volume / (self.porosity - 1.0)
+        cube_length = np.cbrt(vol_domain / factor)
+        self.length[:] = cube_length
+        self.length[dim] *= factor
 
     def print_stats(self):
         """
